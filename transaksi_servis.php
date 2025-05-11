@@ -24,6 +24,10 @@ $keterangan = '';
 // Mendapatkan data mekanik
 $queryMekanik = mysqli_query($conn, "SELECT id, nama_mekanik FROM mekanik WHERE status = 'aktif'");
 
+// Mendapatkan data pelangggan
+$query_pelanggan = mysqli_query($conn, "SELECT * FROM pelanggan") or die(mysqli_error($conn));
+
+
 // Generate nomor invoice otomatis
 function generateNoInvoice() {
     $prefix = "INV/SRV/";
@@ -266,60 +270,63 @@ $resultTransaksi = mysqli_query($conn, $queryTransaksi);
     <!-- Custom styles for this page -->
     <link href="assets/vendor/datatables/dataTables.bootstrap4.min.css" rel="stylesheet">
     
+    <!-- Load jQuery first -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    
     <!-- Select2 -->
     <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
     <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 
-<style>
+    <style>
     /* Perbaikan CSS untuk Select2 */
-.select2-container {
+    .select2-container {
     width: 100% !important;
     z-index: 9999;
-}
+    }
 
-.select2-container--open .select2-dropdown {
+    .select2-container--open .select2-dropdown {
     z-index: 10000;
-}
+    }
 
-.select2-container--open .select2-dropdown--above {
+    .select2-container--open .select2-dropdown--above {
     z-index: 10000;
-}
+    }
 
-.select2-container--open .select2-dropdown--below {
+    .select2-container--open .select2-dropdown--below {
     z-index: 10000;
-}
+    }
 
-.select2-search--dropdown .select2-search__field {
+    .select2-search--dropdown .select2-search__field {
     width: 100% !important;
     padding: 6px !important;
     box-sizing: border-box !important;
-}
+    }
 
-.modal-body .select2-container--default .select2-selection--single {
+    .modal-body .select2-container--default .select2-selection--single {
     border: 1px solid #d1d3e2;
     border-radius: 4px;
     height: 38px;
     padding: 4px;
-}
+    }
 
-.modal-body .select2-container--default .select2-selection--single .select2-selection__arrow {
+    .modal-body .select2-container--default .select2-selection--single .select2-selection__arrow {
     height: 36px;
-}
+    }
 
-/* Membuat kolom pencarian Select2 lebih terlihat */
-.select2-search--dropdown {
+    /* Membuat kolom pencarian Select2 lebih terlihat */
+    .select2-search--dropdown {
     padding: 8px;
-}
+    }
 
-.select2-search--dropdown .select2-search__field {
+    .select2-search--dropdown .select2-search__field {
     border: 1px solid #aaa;
     border-radius: 4px;
-}
+    }
 
-/* Pastikan dropdown Select2 muncul di atas modal */
-.modal-open .select2-container--open .select2-dropdown {
+    /* Pastikan dropdown Select2 muncul di atas modal */
+    .modal-open .select2-container--open .select2-dropdown {
     z-index: 1056 !important;
-}
+    }
 </style>
 
 </head>
@@ -880,23 +887,19 @@ $resultTransaksi = mysqli_query($conn, $queryTransaksi);
     <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
     <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
     <script>
+
+// Fix z-index issues for Select2 dropdowns in modal
+    $.fn.modal.Constructor.prototype._enforceFocus = function() {};
+
     // JavaScript for transaksi_servis.php
 $(document).ready(function() {
     // Initialize DataTable
     $('#dataTable').DataTable();
     
-    // Completely remove the modal focus enforcement override
-    // This is a common cause of Select2 dropdown issues in modals
-    if ($.fn.modal) {
-        $.fn.modal.Constructor.prototype._enforceFocus = function() {};
-    }
-    
-    // Initialize Select2 for pelanggan with improved configuration
+    // Inisialisasi Select2 untuk pelanggan
     $('.select2-pelanggan').select2({
         placeholder: '-- Pilih Pelanggan --',
         allowClear: true,
-        width: '100%',
-        dropdownParent: $('#modalTransaksi'),
         ajax: {
             url: 'get_pelanggan.php',
             dataType: 'json',
@@ -913,7 +916,8 @@ $(document).ready(function() {
             },
             cache: true
         },
-        minimumInputLength: 0
+        minimumInputLength: 0,
+        dropdownParent: $('#modalTransaksi')
     });
 
     // When pelanggan is selected, load related kendaraan
@@ -927,8 +931,6 @@ $(document).ready(function() {
             $('.select2-kendaraan').select2({
                 placeholder: '-- Pilih Kendaraan --',
                 allowClear: true,
-                width: '100%',
-                dropdownParent: $('#modalTransaksi'),
                 ajax: {
                     url: 'get_kendaraan.php',
                     dataType: 'json',
@@ -946,7 +948,8 @@ $(document).ready(function() {
                     },
                     cache: true
                 },
-                minimumInputLength: 0
+                minimumInputLength: 0,
+                dropdownParent: $('#modalTransaksi')
             });
         } else {
             $('#kendaraan_id').prop('disabled', true);
@@ -954,41 +957,41 @@ $(document).ready(function() {
         }
     });
 
-    // Initialize Select2 for sparepart
-    initializeSelect2Sparepart($('.select2-sparepart'));
-    
-    // Function to initialize Select2 for sparepart
     function initializeSelect2Sparepart(element) {
-        element.select2({
-            placeholder: '-- Pilih Sparepart --',
-            allowClear: true,
-            width: '100%',
-            dropdownParent: $('#modalTransaksi'),
-            ajax: {
-                url: 'get_sparepart.php',
-                dataType: 'json',
-                delay: 250,
-                data: function(params) {
-                    return {
-                        term: params.term || ''
-                    };
-                },
-                processResults: function(data) {
-                    return {
-                        results: data
-                    };
-                },
-                cache: true
+    element.select2({
+        placeholder: '-- Pilih Sparepart --',
+        allowClear: true,
+        ajax: {
+            url: 'get_sparepart.php',
+            dataType: 'json',
+            delay: 250,
+            data: function(params) {
+                return {
+                    term: params.term || ''
+                };
             },
-            minimumInputLength: 0
-        });
-    }
+            processResults: function(data) {
+                console.log('Received data:', data); // Add this for debugging
+                return {
+                    results: data
+                };
+            },
+            cache: true,
+            error: function(xhr, status, error) { // Add error handling
+                console.error('Select2 AJAX error:', error);
+            }
+        },
+        minimumInputLength: 0,
+        dropdownParent: $('#modalTransaksi')
+    }).on('select2:open', function() {
+        console.log('Select2 dropdown opened'); // Add this for debugging
+    }).on('select2:closing', function() {
+        console.log('Select2 dropdown closing'); // Add this for debugging
+    });
+}
     
-    // Function to add new layanan row with improved event handling
-    $(document).on('click', '.tambah-layanan', function(e) {
-        e.preventDefault();
-        e.stopPropagation();
-        
+    // Function to add new layanan row
+    $(document).on('click', '.tambah-layanan', function() {
         var newRow = `
             <tr>
                 <td>
@@ -1008,20 +1011,14 @@ $(document).ready(function() {
         calculateTotal();
     });
 
-    // Function to remove layanan row with improved event handling
-    $(document).on('click', '.hapus-layanan', function(e) {
-        e.preventDefault();
-        e.stopPropagation();
-        
+    // Function to remove layanan row
+    $(document).on('click', '.hapus-layanan', function() {
         $(this).closest('tr').remove();
         calculateTotal();
     });
 
-    // Function to add new sparepart row with improved event handling
-    $(document).on('click', '.tambah-sparepart', function(e) {
-        e.preventDefault();
-        e.stopPropagation();
-        
+    // Function to add new sparepart row
+    $(document).on('click', '.tambah-sparepart', function() {
         var newRow = `
             <tr>
                 <td>
@@ -1055,11 +1052,8 @@ $(document).ready(function() {
         calculateTotal();
     });
 
-    // Function to remove sparepart row with improved event handling
-    $(document).on('click', '.hapus-sparepart', function(e) {
-        e.preventDefault();
-        e.stopPropagation();
-        
+    // Function to remove sparepart row
+    $(document).on('click', '.hapus-sparepart', function() {
         $(this).closest('tr').remove();
         calculateTotal();
     });
@@ -1138,59 +1132,14 @@ $(document).ready(function() {
         $('#total_bayar').val(totalBayar);
     }
 
-    // Open Modal if edit or add with proper handling
+    // Open Modal if edit or add
     <?php if (isset($_GET['edit'])) : ?>
-    setTimeout(function() {
-        $('#modalTransaksi').modal({
-            backdrop: 'static',
-            keyboard: false,
-            show: true
-        });
-    }, 100);
+    $('#modalTransaksi').modal('show');
     <?php endif; ?>
     
-    // Fix Select2 CSS issues in modal with proper timing
-    $('#modalTransaksi').on('shown.bs.modal', function() {
-        // Ensure all Select2 instances get proper width
-        setTimeout(function() {
-            $('.select2-container').css('width', '100%');
-            
-            // Reinitialize select2 elements to ensure they work properly
-            $('.select2-pelanggan, .select2-kendaraan, .select2-sparepart').each(function() {
-                if ($(this).data('select2')) {
-                    $(this).select2('destroy').select2({
-                        dropdownParent: $('#modalTransaksi'),
-                        width: '100%'
-                    });
-                }
-            });
-        }, 200);
-    });
-    
-    // Prevent modal from closing when clicking inside form elements
-    $('#modalTransaksi').on('click', function(e) {
-        if ($(e.target).closest('.modal-content').length) {
-            e.stopPropagation();
-        }
-    });
-    
-    // Prevent form submission from closing modal unintentionally
-    $('#formTransaksi').on('submit', function(e) {
-        if (!$(this)[0].checkValidity()) {
-            e.preventDefault();
-            e.stopPropagation();
-        }
-        $(this).addClass('was-validated');
-    });
-    
-    // Properly handle the modal toggle button
-    $('button[data-toggle="modal"][data-target="#modalTransaksi"]').on('click', function(e) {
-        e.preventDefault();
-        $('#modalTransaksi').modal({
-            backdrop: 'static',
-            keyboard: false,
-            show: true
-        });
+    // Fix Select2 CSS issues in modal
+    $('#modalTransaksi').on('shown.bs.modal', function () {
+        $('.select2-container').css('width', '100%');
     });
 });
     </script>
